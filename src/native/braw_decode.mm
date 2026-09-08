@@ -366,16 +366,27 @@ static std::string CFStringToStdString(CFStringRef cfStr) {
 
 static IBlackmagicRawFactory* InitFactory() {
     IBlackmagicRawFactory* factory = nullptr;
-    const char* sdkLocations[] = {
-        "/Users/studio/Documents/Sandbox/davinci-braw/Documents/Blackmagic RAW SDK/Mac/Libraries",
-        "Documents/Blackmagic RAW SDK/Mac/Libraries",
-        "../Documents/Blackmagic RAW SDK/Mac/Libraries",
-        "/Library/Application Support/Blackmagic Design/Blackmagic RAW",
-        "/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/Libraries"
-    };
 
-    for (const char* loc : sdkLocations) {
-        CFStringRef cfLoc = CFStringCreateWithCString(NULL, loc, kCFStringEncodingUTF8);
+    std::vector<std::string> sdkLocations;
+
+    // 1. Environment variable override
+    const char* envSdk = getenv("BRAW_SDK_DIR");
+    if (envSdk && strlen(envSdk) > 0) {
+        sdkLocations.push_back(std::string(envSdk) + "/Libraries");
+        sdkLocations.push_back(std::string(envSdk));
+    }
+
+    // 2. Relative project/workspace paths
+    sdkLocations.push_back("Documents/Blackmagic RAW SDK/Mac/Libraries");
+    sdkLocations.push_back("../Documents/Blackmagic RAW SDK/Mac/Libraries");
+
+    // 3. Standard macOS system SDK / driver locations
+    sdkLocations.push_back("/Applications/Blackmagic RAW/Blackmagic RAW SDK/Mac/Libraries");
+    sdkLocations.push_back("/Library/Application Support/Blackmagic Design/Blackmagic RAW");
+    sdkLocations.push_back("/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/Libraries");
+
+    for (const auto& loc : sdkLocations) {
+        CFStringRef cfLoc = CFStringCreateWithCString(NULL, loc.c_str(), kCFStringEncodingUTF8);
         factory = CreateBlackmagicRawFactoryInstanceFromPath(cfLoc);
         CFRelease(cfLoc);
         if (factory) return factory;

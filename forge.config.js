@@ -3,10 +3,12 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
 module.exports = {
   packagerConfig: {
-    name: 'Black Magic Converter',
+    name: 'Blackmagic Converter',
     executableName: 'BlackMagicConverter',
     appBundleId: 'com.blackmagic.converter',
     appCategoryType: 'public.app-category.video',
+    appVersion: '5.0.0',
+    buildVersion: '5.0.0',
     icon: './assets/icons/icon',
     asar: true,
     extraResource: [

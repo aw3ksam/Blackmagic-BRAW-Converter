@@ -1,10 +1,12 @@
-# OS / IDE artifacts
+# OS / IDE / AI Agent artifacts
 .DS_Store
 *.swp
 *.swo
 *~
 .idea/
 .vscode/
+AGENTS.md
+*.agent.md
 
 # Python
 __pycache__/

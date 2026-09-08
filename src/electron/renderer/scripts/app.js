@@ -1,4 +1,4 @@
-// Black Magic Converter - Renderer Application Logic (v4.0)
+// Blackmagic Converter - Renderer Application Logic (v5.0)
 
 document.addEventListener('DOMContentLoaded', async () => {
   const electron = window.electronAPI;
@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (res && res.path) {
       updateRootDisplay(res.path);
       updateFolderCounts(res.counts);
-      appendLogLine(`[GUI] Watch root updated to: ${res.path}`, 'system');
+      appendLogLine(`[GUI] Watch Folder updated to: ${res.path}`, 'system');
     }
   });
 
@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     navigator.clipboard.writeText(text);
     btnCopyLogs.textContent = 'Copied!';
     setTimeout(() => {
-      btnCopyLogs.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy`;
+      btnCopyLogs.innerHTML = `Copy`;
     }, 1500);
   });
 

@@ -1,118 +1,97 @@
 # Blackmagic BRAW Converter
 
-An automated hot-folder ingest and high-performance video transcoding workstation for Blackmagic RAW (`.braw`) footage.
+Automated hot-folder monitoring and standalone video transcoding workstation for Blackmagic RAW (`.braw`) media.
 
-Built with **Electron Forge + Vite** for the cross-platform desktop UI, backed by a zero-copy **Metal GPU 3D LUT + Apple VideoToolbox / FFmpeg** transcoding engine, and featuring direct **Blackmagic Camera REST & FTP Auto-Ingest** (PYXIS 6K, Cinema Camera 6K, Pocket series).
+The application combines an Electron desktop interface with an in-process native Metal compute engine, Apple VideoToolbox hardware encoder, and background camera synchronization. It operates independently without requiring DaVinci Resolve or external dongles.
 
----
-
-## ✨ Key Features
-
-* **⚡ Ultra-Fast Metal GPU Transcoding**: Direct in-process Metal GPU 3D LUT Compute Shader and Apple VideoToolbox hardware encoder producing pristine 10-bit H.265 (HEVC Main10) and H.264 deliverables at ~38+ fps on 6K footage with zero intermediate files.
-* **🎥 Blackmagic Camera Direct Auto-Ingest**: Automatically connects to your Blackmagic camera (PYXIS 6K, Cinema Camera 6K, etc.) over REST and FTP, listens for record stop triggers (`recording: false`), isolates newly recorded takes, and transfers clips straight into the ingest queue.
-* **📁 Automated Hot-Folder Pipeline**: Drop `.braw` clips into `00_IN_INGEST`. The multi-stage stability watcher verifies write completion, processes files, moves deliverables to `02_COMPLETED_MP4`, and archives source files to `03_ARCHIVE_BRAW`.
-* **🎨 23 Bundled Blackmagic 3D LUTs**: Full Blackmagic Generation 5 and Gen 4 film-to-video / extended video LUT color conversions included out of the box in `assets/luts/`.
-* **🖥️ Modern Desktop Workstation**: Responsive Electron dashboard with live encoding telemetry, FPS monitoring, queue status, camera connection management, and integrated log streaming.
-* **🔓 Zero DaVinci Resolve Dependency**: Fully standalone. Runs without needing DaVinci Resolve Studio or dongles installed.
+![Blackmagic BRAW Converter Dashboard](assets/screenshots/dashboard.png)
 
 ---
 
-## 🚀 Quick Start
+## Core Capabilities
 
-### 1. Prerequisites
-* **macOS**: Sonoma 14+ or Sequoia 15+ (Apple Silicon recommended for Metal GPU acceleration)
-* **Node.js**: v18+ (Node 20+ recommended)
-* **Python**: 3.10+ (with `pyyaml`)
-* **Optional**: FFmpeg in PATH (used for audio muxing & metadata tagging)
+- **Metal GPU Color Science**: In-process Metal 3D LUT compute pipeline reading RAW pixel buffers and encoding directly to 10-bit H.265 (HEVC Main10), H.264, or ProRes deliverables via VideoToolbox.
+- **Automated Hot-Folder Staging**: 5-stage hot-folder watcher with POSIX file-locking and size-stability verification to prevent premature transcoding of in-flight transfers.
+- **Blackmagic Camera Network Ingest**: Background service connecting to Blackmagic cameras (PYXIS 6K, Cinema Camera 6K, Pocket series) via REST and FTP. Automatically detects record stop transitions, extracts takes, and transfers media into the ingest queue.
+- **Bundled 3D LUT Profiles**: Includes 23 Blackmagic Generation 4 and Generation 5 color science conversion LUTs in `assets/luts/`.
+- **Standalone Architecture**: Zero dependencies on DaVinci Resolve or Resolve Studio licenses.
 
-### 2. Setup & Installation
+---
+
+## Installation & Quick Start
+
+### Prerequisites
+
+- macOS 14 (Sonoma) or macOS 15 (Sequoia) on Apple Silicon (M1/M2/M3/M4)
+- Node.js 20 or later
+- Python 3.10 or later
+- FFmpeg (accessible in system PATH or installed via Homebrew)
+
+### Running from Source
 
 ```bash
-# Clone or navigate to the project folder
-cd "Blackmagic BRAW Converter"
+# Clone the repository
+git clone https://github.com/aw3ksam/Blackmagic-BRAW-Converter.git
+cd Blackmagic-BRAW-Converter
 
 # Install dependencies
 npm install
+pip3 install -r requirements.txt
 
-# (Optional) Rebuild the native Metal decoder & VideoToolbox engine
-npm run build:decoder
-```
-
-> **Note**: A pre-compiled `bin/braw_decode` binary is already included for macOS Apple Silicon. You only need to run `npm run build:decoder` if you modify `src/native/` source files.
-
-### 3. Launch the Application
-
-```bash
-# Start the Electron desktop workstation in development mode
+# Launch the application
 npm start
 ```
 
-### 4. Build Distributable Binaries
+### Building Distributables
 
 ```bash
-# Package local standalone app into out/
+# Package application bundle into out/
 npm run package
 
-# Create platform installers (DMG and ZIP)
+# Build macOS installer packages (.dmg and .zip) in out/make/
 npm run make
 ```
 
+A pre-compiled native decoder binary for Apple Silicon is located at `bin/braw_decode`. If modifying native source files in `src/native/`, recompile with:
+
+```bash
+npm run build:decoder
+```
+
 ---
 
-## 📂 Hot-Folder Workflow
+## Media Pipeline Workflow
 
-The automated ingestion pipeline uses 5 immutable lifecycle folders under `watch_folders/`:
+The watcher monitors an ingest directory structured into five lifecycle folders:
 
 ```text
 watch_folders/
-├── 00_IN_INGEST/          # Drop zone: Place new .braw files here (or auto-synced from camera)
-├── 01_PROCESSING/         # Working zone: Active transcode in progress
-├── 02_COMPLETED_MP4/      # Finished deliverables: 10-bit H.265 / H.264 MP4 videos
-├── 03_ARCHIVE_BRAW/       # Archive: Original source .braw files safely stored here
-└── 99_FAILED/             # Quarantine: Any corrupted or failed clips for inspection
+├── 00_IN_INGEST/          # Entry directory for incoming .braw clips
+├── 01_PROCESSING/         # Active transcoding queue
+├── 02_COMPLETED_MP4/      # Output directory for rendered deliverables
+├── 03_ARCHIVE_BRAW/       # Storage for completed source .braw files
+└── 99_FAILED/             # Quarantine for corrupted or unreadable clips
 ```
 
-### File Processing Lifecycle
-1. Clip lands in `00_IN_INGEST/`.
-2. The watcher monitors file size stability across multiple intervals to ensure camera writes/transfers are complete.
-3. Once stable, the clip moves to `01_PROCESSING/`.
-4. Native Metal GPU engine decodes the RAW stream, applies the selected 3D LUT, and encodes hardware HEVC Main10 video.
-5. Final video is saved to `02_COMPLETED_MP4/`.
-6. Source `.braw` file is safely moved to `03_ARCHIVE_BRAW/`.
+### Staging Lifecycle
+
+1. A `.braw` clip is placed into `00_IN_INGEST/` manually or downloaded by the camera auto-ingest service.
+2. The stability guard samples file size and POSIX locks across consecutive intervals (`stability_checks` at `stability_delay` intervals).
+3. Upon stabilization, the clip and any companion `.sidecar` files are moved atomically to `01_PROCESSING/`.
+4. The transcode engine decodes the RAW stream, applies the configured 3D LUT, and writes hardware-encoded video with preserved source timecode and audio tracks.
+5. Deliverables are saved to `02_COMPLETED_MP4/`.
+6. Source `.braw` files are moved to `03_ARCHIVE_BRAW/` to preserve camera originals.
 
 ---
 
-## 💻 Command-Line Interface (CLI)
+## Settings & Configuration
 
-The Python engine can also run as a headless service or manual conversion tool:
+Application parameters can be configured through the desktop user interface or edited directly in `config/config.yaml`:
 
-```bash
-# Start the automated hot-folder watcher daemon
-python3 -m src.cli watch
-
-# Transcode a single .braw clip manually
-python3 -m src.cli transcode /path/to/clip.braw -o /path/to/output.mp4
-
-# Transcode with a custom 3D LUT and bitrate
-python3 -m src.cli transcode /path/to/clip.braw -o /path/to/output.mp4 \
-  --lut "Blackmagic Gen 5 Film to Extended Video.cube" \
-  --bitrate 35
-
-# List all bundled 3D LUT profiles
-python3 -m src.cli luts
-
-# Run Blackmagic Camera auto-ingest sync once
-python3 -m src.cli camera-ingest --ip 192.168.1.118
-```
-
----
-
-## ⚙️ Configuration
-
-Application settings, render presets, and watch folder locations can be adjusted in `config/config.yaml`:
+![Transcoder and Pipeline Settings](assets/screenshots/settings.png)
 
 ```yaml
-# Storage and Hot Folder Paths
+# Storage and Folder Paths
 storage:
   ingest_dir: "./watch_folders/00_IN_INGEST"
   processing_dir: "./watch_folders/01_PROCESSING"
@@ -120,20 +99,27 @@ storage:
   archive_dir: "./watch_folders/03_ARCHIVE_BRAW"
   failed_dir: "./watch_folders/99_FAILED"
 
-# Ingest & Watcher Settings
+# Watcher Stability Parameters
 watcher:
   poll_interval: 2.0
   stability_checks: 3
   stability_delay: 2.0
+  extensions:
+    - ".braw"
+  include_sidecars: true
 
-# Transcode Defaults
+# Transcoding Parameters
 transcode:
   container: "mp4"
   codec: "H265"
   encoding_profile: "Main10"
   resolution: "source"
   frame_rate: "source"
-  bitrate_mbps: 0 # 0 = Best / auto rate control
+  bitrate_mbps: 0          # 0 = automated rate control
+  audio:
+    codec: "aac"
+    sample_rate: 48000
+    bitrate_kbps: 320
   color:
     mode: "lut"
     lut_path: "Blackmagic Gen 5 Film to Extended Video.cube"
@@ -141,42 +127,73 @@ transcode:
 
 ---
 
-## 🧪 Testing & Verification
+## Headless CLI Operation
 
-Run the comprehensive unit and integration test suite:
+The underlying Python transcoding and monitoring engine can be executed headlessly for server environments and automated pipelines:
 
 ```bash
-# Run all automated tests
+# Run the hot-folder watcher service
+python3 -m src.cli watch --config config/config.yaml
+
+# Transcode an individual file
+python3 -m src.cli transcode /path/to/clip.braw -o /path/to/output.mp4
+
+# Run manual batch conversion on a directory
+python3 -m src.cli transcode /path/to/folder/ -o /path/to/output/
+
+# List all bundled and system 3D LUT profiles
+python3 -m src.cli list-luts
+
+# Execute environment and dependency diagnostics
+python3 -m src.cli test-env
+
+# Run headless camera auto-ingest service
+python3 -m src.cli camera-service --camera-ip 192.168.1.118 --camera-ftp ftp://PYXIS-6K.local
+```
+
+---
+
+## Project Structure
+
+```text
+├── assets/
+│   ├── icons/                  # Application icon sets (.icns, .ico, .png)
+│   ├── luts/                   # 23 bundled Blackmagic Gen 4 and Gen 5 3D LUTs
+│   └── screenshots/            # Interface reference images
+├── bin/
+│   └── braw_decode             # Compiled native Metal / VideoToolbox executable
+├── config/
+│   ├── config.default.yaml     # Baseline configuration template
+│   └── config.yaml             # Active runtime configuration
+├── entitlements/               # macOS hardened runtime entitlement definitions
+├── forge.config.js             # Electron Forge packaging configuration
+├── package.json                # Project dependencies and lifecycle scripts
+├── requirements.txt            # Python dependencies (pyyaml, watchdog)
+├── scripts/
+│   ├── build_decoder.sh        # Native Metal decoder compilation script
+│   ├── start_electron.sh       # Development launcher
+│   └── start_watcher.sh        # Standalone watcher launcher
+├── src/
+│   ├── camera/                 # Blackmagic REST client, FTP engine, and auto-ingest
+│   ├── common/                 # Configuration loader, file watcher, stability guard
+│   ├── electron/               # Electron main process, preload bridge, and renderer UI
+│   ├── ffmpeg_engine/          # Transcoding pipeline, LUT manager, and decoder bridge
+│   └── native/                 # Objective-C++ Metal compute and VideoToolbox source
+└── tests/                      # Automated unit and integration test suite
+```
+
+---
+
+## Testing
+
+Execute the test suite covering the camera REST client, stability guard, watcher state transitions, LUT resolution, and decoder bridge:
+
+```bash
 npm test
 ```
 
 ---
 
-## 🏗️ Project Architecture
+## License
 
-```text
-Blackmagic BRAW Converter/
-├── assets/                     # Application icons and 23 bundled Blackmagic 3D LUTs
-├── bin/                        # Compiled native braw_decode Metal GPU binary
-├── config/                     # YAML configuration presets
-├── entitlements/               # macOS Hardened Runtime security entitlements
-├── forge.config.js             # Electron Forge build & packaging configuration
-├── scripts/                    # Build decoders and automation scripts
-├── src/
-│   ├── camera/                 # Blackmagic camera REST API & FTP auto-transfer service
-│   ├── common/                 # Config loader, logger, and watch folder stability guard
-│   ├── electron/               # Electron desktop app (Main, Preload bridge, Renderer UI)
-│   ├── ffmpeg_engine/          # Transcoding pipeline, LUT manager, and decoder bridge
-│   ├── native/                 # Metal GPU 3D LUT compute shader & VideoToolbox encoder
-│   └── cli.py                  # Standalone CLI interface
-├── tests/                      # Automated unit and integration tests
-├── watch_folders/              # Hot-folder processing directories (.gitkeep)
-├── AGENTS.md                   # Core development & architecture guidelines
-└── package.json                # Dependencies and build scripts
-```
-
----
-
-## 📄 License
-
-Apache-2.0 License. See source files for details.
+Apache-2.0

@@ -60,7 +60,7 @@ process.on('uncaughtException', (error) => {
   const msg = `Uncaught Exception:\n${error.stack || error.message || String(error)}`;
   debugLog('FATAL', msg);
   try {
-    dialog.showErrorBox('Black Magic Converter — Fatal Error',
+    dialog.showErrorBox('Blackmagic Converter — Fatal Error',
       `${msg}\n\nLog file: ${LOG_FILE}`);
   } catch (_e) {
     // dialog may not be available if app hasn't initialized yet
@@ -159,6 +159,19 @@ function resolveDefaultRootFolder() {
 let activeRootFolder = resolveDefaultRootFolder();
 debugLog('PATHS', `activeRootFolder = ${activeRootFolder}`);
 
+function resolveAppIcon() {
+  const candidates = [
+    path.join(__dirname, '../../assets/icons/icon.png'),
+    path.join(__dirname, '../../../assets/icons/icon.png'),
+    path.join(app.getAppPath(), 'assets/icons/icon.png'),
+    path.join(process.resourcesPath, 'assets/icons/icon.png'),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return undefined;
+}
+
 function createWindow() {
   debugLog('STARTUP', 'createWindow() called');
   mainWindow = new BrowserWindow({
@@ -166,10 +179,10 @@ function createWindow() {
     height: 760,
     minWidth: 860,
     minHeight: 600,
-    title: 'Black Magic Converter',
+    title: 'Blackmagic Converter',
     titleBarStyle: 'hiddenInset',
     backgroundColor: '#0f1117',
-    icon: path.join(__dirname, '../../../assets/icons/icon.png'),
+    icon: resolveAppIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -860,7 +873,7 @@ app.whenReady().then(() => {
     debugLog('STARTUP', '✅ createWindow() completed successfully');
   } catch (err) {
     debugLog('FATAL', `createWindow() threw: ${err.stack || err.message}`);
-    dialog.showErrorBox('Black Magic Converter — Startup Error',
+    dialog.showErrorBox('Blackmagic Converter — Startup Error',
       `Failed to create window:\n\n${err.stack || err.message}\n\nLog file: ${LOG_FILE}`);
   }
 

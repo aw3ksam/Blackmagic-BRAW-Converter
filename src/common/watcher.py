@@ -19,14 +19,6 @@ from watchdog.events import FileSystemEventHandler, FileCreatedEvent, FileModifi
 from src.common.config import AppConfig
 from src.common.logger import setup_logger
 
-try:
-    from debug_tools.core.health_server import global_app_state
-    from debug_tools.core.logger import get_logger as get_ndjson_logger
-    _has_debug_tools = True
-except ImportError:
-    global_app_state = None
-    _has_debug_tools = False
-
 logger = setup_logger("braw_watcher")
 
 
@@ -165,16 +157,9 @@ class FolderWatcher:
 
     def _process_candidate(self, braw_path: Path):
         """Guards stability, moves to processing folder, and invokes transcode callback."""
-        job_id = f"job_{int(time.time())}_{braw_path.stem}"
         try:
             if not braw_path.exists():
                 return
-
-            if global_app_state:
-                try:
-                    global_app_state.set_stabilizing(braw_path.name, job_id=job_id)
-                except Exception:
-                    pass
 
             stable = FileStabilityGuard.wait_for_complete_write(
                 file_path=braw_path,
@@ -184,11 +169,6 @@ class FolderWatcher:
 
             if not stable:
                 logger.error(f"Stability check failed for: {braw_path.name}")
-                if global_app_state:
-                    try:
-                        global_app_state.set_idle()
-                    except Exception:
-                        pass
                 return
 
             # Check for sidecar file
@@ -207,15 +187,6 @@ class FolderWatcher:
             shutil.move(str(braw_path), str(processing_braw))
             if has_sidecar and processing_sidecar:
                 shutil.move(str(sidecar_path), str(processing_sidecar))
-
-            if global_app_state:
-                try:
-                    global_app_state.set_transcoding(
-                        input_file=str(processing_braw),
-                        job_id=job_id,
-                    )
-                except Exception:
-                    pass
 
             # Execute Transcode Callback
             success = self.transcode_callback(processing_braw)
@@ -244,11 +215,6 @@ class FolderWatcher:
         except Exception as e:
             logger.exception(f"Unexpected error handling candidate {braw_path.name}: {e}")
         finally:
-            if global_app_state:
-                try:
-                    global_app_state.set_idle()
-                except Exception:
-                    pass
             with self.lock:
                 self.in_flight.discard(braw_path)
 

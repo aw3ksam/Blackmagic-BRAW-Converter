@@ -12,10 +12,13 @@ elif [ -d "${ROOT_DIR}/Documents/Blackmagic RAW SDK/Mac" ]; then
     SDK_DIR="${ROOT_DIR}/Documents/Blackmagic RAW SDK/Mac"
 elif [ -d "/Applications/Blackmagic RAW/Blackmagic RAW SDK/Mac" ]; then
     SDK_DIR="/Applications/Blackmagic RAW/Blackmagic RAW SDK/Mac"
-elif [ -d "${ROOT_DIR}/../davinci-braw/Documents/Blackmagic RAW SDK/Mac" ]; then
-    SDK_DIR="${ROOT_DIR}/../davinci-braw/Documents/Blackmagic RAW SDK/Mac"
+elif [ -d "/Library/Application Support/Blackmagic Design/Blackmagic RAW SDK/Mac" ]; then
+    SDK_DIR="/Library/Application Support/Blackmagic Design/Blackmagic RAW SDK/Mac"
+elif [ -d "${HOME}/Documents/Blackmagic RAW SDK/Mac" ]; then
+    SDK_DIR="${HOME}/Documents/Blackmagic RAW SDK/Mac"
 else
     echo "Error: Blackmagic RAW SDK (Mac) not found in system or project locations." >&2
+    echo "Please set BRAW_SDK_DIR environment variable to the SDK 'Mac' directory." >&2
     exit 1
 fi
 

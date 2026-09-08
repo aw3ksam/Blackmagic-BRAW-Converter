@@ -7,7 +7,7 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$REPO_ROOT"
 
 echo "=========================================================="
-echo "🚀 Launching Black Magic Converter v3.0 (Electron Forge)"
+echo "🚀 Launching Blackmagic Converter v5.0 (Electron Forge)"
 echo "=========================================================="
 
 npm start

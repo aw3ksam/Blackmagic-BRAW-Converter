@@ -74,23 +74,12 @@ class EngineConfig:
     hardware_acceleration: bool = True
 
 
-# Kept for backward compatibility
-@dataclass
-class DaVinciConfig:
-    app_path: str = "/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/MacOS/Resolve"
-    auto_start_headless: bool = False
-    launch_timeout: int = 45
-    project_name_prefix: str = "BRAW_Transcode_Job"
-    cleanup_projects_after_render: bool = True
-
-
 @dataclass
 class AppConfig:
     storage: StorageConfig
     watcher: WatcherConfig = field(default_factory=WatcherConfig)
     transcode: TranscodeConfig = field(default_factory=TranscodeConfig)
     engine: EngineConfig = field(default_factory=EngineConfig)
-    davinci: DaVinciConfig = field(default_factory=DaVinciConfig)
 
 
 def load_config(config_path: Optional[str] = None) -> AppConfig:
@@ -168,19 +157,9 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
         hardware_acceleration=bool(engine_data.get("hardware_acceleration", True)),
     )
 
-    davinci_data = data.get("davinci", {})
-    davinci = DaVinciConfig(
-        app_path=str(davinci_data.get("app_path", "/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/MacOS/Resolve")),
-        auto_start_headless=bool(davinci_data.get("auto_start_headless", False)),
-        launch_timeout=int(davinci_data.get("launch_timeout", 45)),
-        project_name_prefix=str(davinci_data.get("project_name_prefix", "BRAW_Transcode_Job")),
-        cleanup_projects_after_render=bool(davinci_data.get("cleanup_projects_after_render", True)),
-    )
-
     return AppConfig(
         storage=storage,
         watcher=watcher,
         transcode=transcode,
         engine=engine,
-        davinci=davinci,
     )
