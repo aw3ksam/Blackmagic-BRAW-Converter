@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Black Magic Converter</title>
+  <link rel="stylesheet" href="./styles/app.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="app-body">
+  <div class="window-container">
+    <!-- Top Header Bar -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand-badge">
+          <div class="brand-logo-ring">
+            <span class="aperture-core"></span>
+          </div>
+          <div class="brand-info">
+            <div class="brand-title-row">
+              <h1 class="brand-name">Black Magic Converter</h1>
+              <span class="version-badge">v4.0</span>
+            </div>
+            <p class="brand-subtitle">Automated BRAW Transcoder & Standalone Engine</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <div class="root-folder-card" id="btn-select-root" title="Click to choose a different watch folder">
+          <svg class="folder-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <div class="folder-text-wrap">
+            <span class="folder-label">WATCH ROOT:</span>
+            <span class="folder-path" id="display-root-path">Loading...</span>
+          </div>
+          <span class="folder-change-btn">Change</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="service-pill" id="service-status-pill">
+          <span class="status-dot"></span>
+          <span class="status-text" id="service-status-text">Idle</span>
+        </div>
+        <button class="settings-icon-btn" id="btn-open-settings" title="Transcoder Settings">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+        <button class="primary-action-btn" id="btn-toggle-service">
+          <svg class="btn-icon play-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <svg class="btn-icon stop-icon hidden" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <rect x="5" y="5" width="14" height="14" rx="2"></rect>
+          </svg>
+          <span id="btn-toggle-label">Start Watcher</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Camera Ingest Status & Control Bar (Tool 1) -->
+    <section class="camera-bar">
+      <div class="camera-bar-left">
+        <div class="camera-pill" id="camera-status-pill" title="Current Blackmagic Camera Connection Status">
+          <span class="camera-dot"></span>
+          <span class="camera-label" id="camera-status-label">Camera Standby</span>
+        </div>
+        <div class="camera-ip-control-wrap" title="Enter Camera IP and click Connect to switch devices">
+          <span class="camera-ip-prefix">IP:</span>
+          <input type="text" id="bar-camera-ip" class="camera-ip-input" value="192.168.1.118" placeholder="192.168.1.118" title="Enter Blackmagic camera IP (press Enter to connect)">
+          <button type="button" class="cam-btn btn-connect" id="btn-camera-connect" title="Connect to this Camera IP">
+            <svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2.5" fill="none">
+              <path d="M5 12h14"></path>
+              <path d="M12 5l7 7-7 7"></path>
+            </svg>
+            Connect
+          </button>
+        </div>
+      </div>
+
+      <div class="camera-bar-center">
+        <!-- Live Download Progress Strip (hidden by default) -->
+        <div class="camera-download-strip" id="camera-download-strip">
+          <div class="download-info">
+            <span class="download-filename" id="cam-download-filename">Downloading clip...</span>
+            <span class="download-telemetry" id="cam-download-telemetry">0% @ 0.0 MB/s</span>
+          </div>
+          <div class="download-track">
+            <div class="download-fill" id="cam-download-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="camera-bar-right">
+        <button class="cam-btn btn-import-today" id="btn-camera-import-today" title="Retroactively import all clips shot today into 00_IN_INGEST">
+          <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          Import Today
+        </button>
+        <div class="cam-toggle-wrap">
+          <span class="cam-toggle-label">Auto Ingest:</span>
+          <label class="cam-switch" title="Toggle automated camera clip transfer into 00_IN_INGEST">
+            <input type="checkbox" id="chk-camera-auto-transfer">
+            <span class="cam-slider"></span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pipeline Stage Cards -->
+    <section class="pipeline-section">
+      <div class="section-title-row">
+        <h2 class="section-heading">5-Stage Media Pipeline</h2>
+        <span class="subtext-indicator">Auto-provisions missing stages & preserves source media</span>
+      </div>
+      <div class="pipeline-grid">
+        <!-- 00_IN_INGEST -->
+        <div class="pipeline-card" data-stage="00_IN_INGEST">
+          <div class="card-top">
+            <span class="stage-tag tag-ingest">00 INGEST</span>
+            <button class="reveal-btn" data-folder="00_IN_INGEST" title="Reveal in Finder">
+              <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </button>
+          </div>
+          <div class="card-main">
+            <div class="count-value" id="count-00_IN_INGEST">0</div>
+            <div class="card-name">Camera Drop Zone</div>
+          </div>
+          <div class="card-footer">Incoming .braw files</div>
+        </div>
+
+        <!-- 01_PROCESSING -->
+        <div class="pipeline-card" data-stage="01_PROCESSING">
+          <div class="card-top">
+            <span class="stage-tag tag-proc">01 PROCESSING</span>
+            <button class="reveal-btn" data-folder="01_PROCESSING" title="Reveal in Finder">
+              <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </button>
+          </div>
+          <div class="card-main">
+            <div class="count-value" id="count-01_PROCESSING">0</div>
+            <div class="card-name">Active Queue</div>
+          </div>
+          <div class="card-footer">In-flight renders</div>
+        </div>
+
+        <!-- 02_COMPLETED_MP4 -->
+        <div class="pipeline-card" data-stage="02_COMPLETED_MP4">
+          <div class="card-top">
+            <span class="stage-tag tag-done">02 COMPLETED</span>
+            <button class="reveal-btn" data-folder="02_COMPLETED_MP4" title="Reveal in Finder">
+              <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </button>
+          </div>
+          <div class="card-main">
+            <div class="count-value" id="count-02_COMPLETED_MP4">0</div>
+            <div class="card-name">Finished H.265</div>
+          </div>
+          <div class="card-footer">Deliverable 10-bit MP4s</div>
+        </div>
+
+        <!-- 03_ARCHIVE_BRAW -->
+        <div class="pipeline-card" data-stage="03_ARCHIVE_BRAW">
+          <div class="card-top">
+            <span class="stage-tag tag-arch">03 ARCHIVE</span>
+            <button class="reveal-btn" data-folder="03_ARCHIVE_BRAW" title="Reveal in Finder">
+              <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </button>
+          </div>
+          <div class="card-main">
+            <div class="count-value" id="count-03_ARCHIVE_BRAW">0</div>
+            <div class="card-name">Raw Archive</div>
+          </div>
+          <div class="card-footer">Original preserved BRAW</div>
+        </div>
+
+        <!-- 99_FAILED -->
+        <div class="pipeline-card" data-stage="99_FAILED">
+          <div class="card-top">
+            <span class="stage-tag tag-fail">99 FAILED</span>
+            <button class="reveal-btn" data-folder="99_FAILED" title="Reveal in Finder">
+              <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </button>
+          </div>
+          <div class="card-main">
+            <div class="count-value" id="count-99_FAILED">0</div>
+            <div class="card-name">Quarantine</div>
+          </div>
+          <div class="card-footer">Corrupt or aborted clips</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Transcode Progress Bar Widget -->
+    <section class="progress-section" id="progress-container">
+      <div class="progress-card">
+        <div class="progress-header">
+          <div class="progress-info-left">
+            <span class="pulse-indicator"></span>
+            <span class="clip-label" id="current-clip-name">Transcoder Standing By</span>
+          </div>
+          <div class="progress-telemetry">
+            <span class="fps-badge" id="telemetry-fps">0.0 fps</span>
+            <span class="percent-badge" id="telemetry-percent">0%</span>
+          </div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-bar-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Console Terminal -->
+    <main class="terminal-section">
+      <div class="terminal-card">
+        <div class="terminal-header">
+          <div class="terminal-window-dots">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+          </div>
+          <div class="terminal-title">Engine Real-time Output & Ingest Stream</div>
+          <div class="terminal-actions">
+            <label class="autoscroll-toggle">
+              <input type="checkbox" id="chk-autoscroll" checked>
+              <span>Auto-scroll</span>
+            </label>
+            <button class="term-btn" id="btn-copy-logs" title="Copy console logs to clipboard">
+              <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              Copy
+            </button>
+            <button class="term-btn" id="btn-clear-logs" title="Clear console">
+              Clear
+            </button>
+          </div>
+        </div>
+        <div class="terminal-body" id="terminal-stream">
+          <div class="log-line log-system">[READY] Black Magic Converter v4.0 (FFmpeg + BRAW Native Engine & Camera Auto-Ingest) initialized.</div>
+          <div class="log-line log-info">[INFO] Click "Start Watcher" or drop .braw clips into 00_IN_INGEST to begin automated processing.</div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay hidden" id="modal-settings">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 class="modal-title">Transcoder & Pipeline Settings</h3>
+          <button class="modal-close-btn" id="btn-close-settings">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="cfg-lut">Color Science 3D LUT Transform</label>
+            <select id="cfg-lut" class="form-select">
+              <option value="Blackmagic Gen 5 Film to Extended Video.cube">Blackmagic Gen 5 Film to Extended Video (Default)</option>
+              <option value="Blackmagic Gen 5 Film to Video.cube">Blackmagic Gen 5 Film to Video</option>
+              <option value="Blackmagic Film to Extended Video v4.cube">Blackmagic Film to Extended Video v4</option>
+              <option value="Blackmagic 4.6K Film to Extended Video v4.cube">Blackmagic 4.6K Film to Extended Video v4</option>
+              <option value="Blackmagic Pocket 6K Film to Extended Video v4.cube">Blackmagic Pocket 6K Film to Extended Video v4</option>
+              <option value="None">None (Bypass LUT)</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="cfg-codec">Video Codec</label>
+              <select id="cfg-codec" class="form-select">
+                <option value="H265">H.265 / HEVC</option>
+                <option value="H264">H.264 / AVC</option>
+                <option value="ProRes">Apple ProRes</option>
+              </select>
+            </div>
+            <div class="form-group half">
+              <label for="cfg-profile">Encoding Profile</label>
+              <select id="cfg-profile" class="form-select">
+                <option value="Main10">Main10 (10-bit HDR ready)</option>
+                <option value="Main">Main (8-bit SDR)</option>
+                <option value="422HQ">422 HQ (ProRes)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="cfg-audio">Audio Codec</label>
+              <select id="cfg-audio" class="form-select">
+                <option value="AAC">AAC (320kbps Stereo)</option>
+                <option value="LinearPCM">Linear PCM (24-bit uncompressed)</option>
+              </select>
+            </div>
+            <div class="form-group half">
+              <label for="cfg-interval">Scan Interval (seconds)</label>
+              <input type="number" id="cfg-interval" class="form-input" min="1" max="60" value="5">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="cfg-checks">File Stability Checks</label>
+              <input type="number" id="cfg-checks" class="form-input" min="1" max="10" value="3">
+            </div>
+            <div class="form-group half">
+              <label for="cfg-delay">Stability Check Delay (seconds)</label>
+              <input type="number" id="cfg-delay" class="form-input" min="1" max="10" value="2">
+            </div>
+          </div>
+
+          <!-- Blackmagic Camera Ingest Settings -->
+          <div class="settings-section-divider">
+            <span class="divider-title">Blackmagic Camera Ingest (PYXIS 6K)</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="cfg-cam-ip">Camera IP Address</label>
+              <input type="text" id="cfg-cam-ip" class="form-input" value="192.168.1.118" placeholder="192.168.1.118">
+            </div>
+            <div class="form-group half">
+              <label for="cfg-cam-ftp">Camera FTP URL / Host</label>
+              <input type="text" id="cfg-cam-ftp" class="form-input" value="ftp://PYXIS-6K.local" placeholder="ftp://PYXIS-6K.local">
+            </div>
+          </div>
+
+          <div class="form-row" style="align-items: center; justify-content: space-between; margin-top: 6px;">
+            <button type="button" class="modal-btn btn-secondary" id="btn-test-camera-ping" style="padding: 6px 14px; font-size: 12px;">Test Camera Ping</button>
+            <span class="cam-ping-status" id="cam-ping-status-text" style="font-size: 12px; font-family: var(--font-mono); color: var(--text-dim);"></span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn btn-secondary" id="btn-cancel-settings">Cancel</button>
+          <button class="modal-btn btn-primary" id="btn-save-settings">Save & Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./scripts/app.js"></script>
+</body>
+</html>

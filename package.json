@@ -1,0 +1,44 @@
+{
+  "name": "black-magic-converter",
+  "productName": "Black Magic Converter",
+  "version": "4.0.0",
+  "description": "Automated Blackmagic RAW (BRAW) Transcoder & Standalone Engine",
+  "main": ".vite/build/main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "build:decoder": "bash scripts/build_decoder.sh",
+    "build": "npm run package",
+    "package": "ELECTRON_RUN_AS_NODE=1 ELECTRON_NO_ASAR=1 electron ./node_modules/.bin/electron-forge package",
+    "make": "ELECTRON_RUN_AS_NODE=1 ELECTRON_NO_ASAR=1 electron ./node_modules/.bin/electron-forge make",
+    "publish": "electron-forge publish",
+    "lint": "echo \"No linter configured\"",
+    "test": "python3 -c 'import yaml' 2>/dev/null && python3 -m unittest discover -s tests || /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 -m unittest discover -s tests"
+  },
+  "keywords": [
+    "blackmagic",
+    "braw",
+    "transcoder",
+    "davinci-resolve",
+    "electron",
+    "electron-forge"
+  ],
+  "author": "Antigravity Studio",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@electron-forge/cli": "^7.8.2",
+    "@electron-forge/maker-deb": "^7.8.2",
+    "@electron-forge/maker-dmg": "^7.8.2",
+    "@electron-forge/maker-rpm": "^7.8.2",
+    "@electron-forge/maker-squirrel": "^7.8.2",
+    "@electron-forge/maker-zip": "^7.8.2",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.8.2",
+    "@electron-forge/plugin-fuses": "^7.11.2",
+    "@electron-forge/plugin-vite": "^7.8.2",
+    "@electron/fuses": "^1.8.0",
+    "electron": "^34.3.0",
+    "vite": "^6.2.0"
+  },
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.1"
+  }
+}

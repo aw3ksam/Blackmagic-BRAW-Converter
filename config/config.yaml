@@ -1,0 +1,46 @@
+# Blackmagic RAW (BRAW) Standalone Video Converter Configuration (v3.1)
+
+# Storage and Ingest Folder Paths
+storage:
+  ingest_dir: "./watch_folders/00_IN_INGEST"
+  processing_dir: "./watch_folders/01_PROCESSING"
+  completed_dir: "./watch_folders/02_COMPLETED_MP4"
+  archive_dir: "./watch_folders/03_ARCHIVE_BRAW"
+  failed_dir: "./watch_folders/99_FAILED"
+
+# Ingest & Hot Folder Watcher Settings
+watcher:
+  poll_interval: 2.0
+  stability_checks: 3
+  stability_delay: 2.0
+  extensions:
+    - ".braw"
+  include_sidecars: true
+
+# Transcode Settings
+transcode:
+  container: "mp4"
+  codec: "H265"
+  encoding_profile: "Main10"
+  video_quality: "Best"
+  bitrate_mbps: 0
+  resolution: "source"
+  frame_rate: "source"
+
+  audio:
+    codec: "aac"
+    sample_rate: 48000
+    bit_depth: 16
+    bitrate_kbps: 320
+
+  color:
+    mode: "lut"
+    lut_path: "Blackmagic Gen 5 Film to Extended Video.cube"
+    fallback_lut_path: "Blackmagic Film to Extended Video v4.cube"
+
+# Standalone Conversion Engine
+engine:
+  type: "ffmpeg"
+  ffmpeg_path: "ffmpeg"
+  decoder_path: "bin/braw_decode"
+  hardware_acceleration: true

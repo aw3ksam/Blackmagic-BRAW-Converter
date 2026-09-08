@@ -1,0 +1,75 @@
+# OS / IDE artifacts
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Swift / Xcode build artifacts
+.build/
+Packages/
+*.xcodeproj/
+*.xcworkspace/
+.swiftpm/
+
+# Logs and runtime artifacts
+logs/*.log
+*.log
+
+# Video / Media files and watch folder caches
+*.braw
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.wav
+*.aac
+watch_folders/00_IN_INGEST/*
+!watch_folders/00_IN_INGEST/.gitkeep
+watch_folders/01_PROCESSING/*
+!watch_folders/01_PROCESSING/.gitkeep
+watch_folders/02_COMPLETED_MP4/*
+!watch_folders/02_COMPLETED_MP4/.gitkeep
+watch_folders/03_ARCHIVE_BRAW/*
+!watch_folders/03_ARCHIVE_BRAW/.gitkeep
+watch_folders/99_FAILED/*
+!watch_folders/99_FAILED/.gitkeep
+
+# Local user configs / secrets
+config/config.local.yaml
+
+# Node / Electron build artifacts
+node_modules/
+.vite/
+out/
+dist-electron/
+bin/*
+!bin/braw_decode
+!bin/.gitkeep
+*.dSYM/
