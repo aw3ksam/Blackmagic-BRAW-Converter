@@ -38,6 +38,19 @@ The tool automatically ingests clips from monitored hot-folders or connected Bla
 4. **Launch**: Open Blackmagic Converter from Launchpad or `/Applications`.
 5. **Select Watch Folder**: After starting the application, select a folder on your drive to serve as the root watch folder. The program will automatically create the required staging subfolders (`00_IN_INGEST`, `01_PROCESSING`, `02_COMPLETED_MP4`, `03_ARCHIVE_BRAW`, `99_FAILED`) if they do not already exist in the folder.
 
+> [!NOTE]
+> #### macOS Security Notice: Having Trouble Opening Blackmagic Converter?
+> Due to Apple's strict application security and ad-hoc code signing, newer macOS versions (Sonoma/Sequoia) may block the application upon first launch. If you see a warning that the app *"cannot be opened because it is from an unidentified developer"* or *"is damaged"*, follow these steps in **Terminal.app**:
+>
+> 1. Allow applications to run from all sources (you can re-enable this once Blackmagic Converter opens properly):
+>    ```bash
+>    sudo spctl --master-disable
+>    ```
+> 2. Run the following command to remove the quarantine flag and bypass notarization:
+>    ```bash
+>    sudo xattr -rd com.apple.quarantine '/Applications/Blackmagic Converter.app'
+>    ```
+
 ---
 
 ### For Developers (Running & Building from Source)
