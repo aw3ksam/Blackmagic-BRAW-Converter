@@ -36,22 +36,34 @@ class FFmpegPipeline:
 
     def _resolve_ffmpeg(self, custom_path: Optional[str] = None) -> str:
         """Finds the ffmpeg binary."""
-        if custom_path and shutil.which(custom_path):
-            return custom_path
+        if custom_path:
+            cp = Path(custom_path)
+            if cp.is_file() and os.access(cp, os.X_OK):
+                return str(cp.resolve())
+            if shutil.which(custom_path):
+                return custom_path
 
+        project_root = Path(__file__).resolve().parent.parent.parent
+        exec_dir = Path(sys.executable).parent
         candidates = [
+            str(exec_dir / "ffmpeg"),
+            str(project_root / "bin" / "ffmpeg"),
+            "bin/ffmpeg",
             "/opt/homebrew/bin/ffmpeg",
             "/usr/local/bin/ffmpeg",
             "/usr/bin/ffmpeg",
             "ffmpeg",
         ]
         for c in candidates:
+            p = Path(c)
+            if p.is_file() and os.access(p, os.X_OK):
+                return str(p.resolve())
             if shutil.which(c):
                 return c
 
         raise FileNotFoundError(
-            "FFmpeg executable not found in PATH or standard locations (/opt/homebrew/bin/ffmpeg). "
-            "Please ensure FFmpeg is installed."
+            "FFmpeg executable not found in bundled bin/ or system locations (/opt/homebrew/bin/ffmpeg). "
+            "Please ensure FFmpeg is available."
         )
 
     def cancel_active_jobs(self) -> None:

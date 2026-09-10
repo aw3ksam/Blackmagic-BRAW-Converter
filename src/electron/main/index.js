@@ -306,6 +306,28 @@ function resolveProjectRootDir() {
   return process.cwd();
 }
 
+function resolveBundledBinary(binaryName) {
+  const projectRoot = resolveProjectRootDir();
+  const candidates = [
+    path.join(process.resourcesPath, 'bin', binaryName),
+    path.join(projectRoot, 'bin', binaryName),
+    path.join(process.cwd(), 'bin', binaryName),
+  ];
+  for (const c of candidates) {
+    if (c && fs.existsSync(c)) {
+      try {
+        fs.accessSync(c, fs.constants.X_OK);
+        debugLog('PATHS', `resolveBundledBinary: found executable ${binaryName} at ${c}`);
+        return c;
+      } catch (_e) {
+        // file exists but is not executable
+      }
+    }
+  }
+  debugLog('PATHS', `resolveBundledBinary: no bundled binary found for ${binaryName}`);
+  return null;
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // Inline YAML Serializer — replaces js-yaml npm dependency entirely.
 // Only needs to handle: nested objects, arrays, strings, numbers, booleans.
@@ -378,8 +400,8 @@ function generateRuntimeYaml(rootFolder, config) {
     },
     engine: {
       type: 'native',
-      ffmpeg_path: 'ffmpeg',
-      decoder_path: path.join(projectRoot, 'bin', 'braw_decode'),
+      ffmpeg_path: resolveBundledBinary('ffmpeg') || 'ffmpeg',
+      decoder_path: resolveBundledBinary('braw_decode') || path.join(projectRoot, 'bin', 'braw_decode'),
       hardware_acceleration: true
     }
   };
@@ -488,7 +510,6 @@ let latestCameraStatus = {
 
 function startCameraService(autoStartTool1 = false) {
   if (cameraProcess) return;
-  const pythonBin = resolvePythonBinary();
   const projectDir = resolveProjectRootDir();
   const ingestDir = path.join(activeRootFolder, '00_IN_INGEST');
 
@@ -500,22 +521,37 @@ function startCameraService(autoStartTool1 = false) {
     PYTHONUNBUFFERED: '1'
   };
 
-  const args = [
-    '-u',
-    '-m',
-    'src.cli',
-    'camera-service',
-    '--camera-ip', currentConfig.camera_ip || '192.168.1.118',
-    '--camera-ftp', currentConfig.camera_ftp || 'ftp://PYXIS-6K.local',
-    '--dest-dir', ingestDir
-  ];
+  const bundledEngine = resolveBundledBinary('braw_engine');
+  let spawnCmd;
+  let args;
+
+  if (bundledEngine) {
+    spawnCmd = bundledEngine;
+    args = [
+      'camera-service',
+      '--camera-ip', currentConfig.camera_ip || '192.168.1.118',
+      '--camera-ftp', currentConfig.camera_ftp || 'ftp://PYXIS-6K.local',
+      '--dest-dir', ingestDir
+    ];
+  } else {
+    spawnCmd = resolvePythonBinary();
+    args = [
+      '-u',
+      '-m',
+      'src.cli',
+      'camera-service',
+      '--camera-ip', currentConfig.camera_ip || '192.168.1.118',
+      '--camera-ftp', currentConfig.camera_ftp || 'ftp://PYXIS-6K.local',
+      '--dest-dir', ingestDir
+    ];
+  }
   if (autoStartTool1) {
     args.push('--auto-start');
   }
 
-  debugLog('CAMERA', `Spawning camera service: ${pythonBin} ${args.join(' ')}`);
+  debugLog('CAMERA', `Spawning camera service: ${spawnCmd} ${args.join(' ')}`);
 
-  cameraProcess = spawn(pythonBin, args, { cwd: projectDir, env: env });
+  cameraProcess = spawn(spawnCmd, args, { cwd: projectDir, env: env });
 
   cameraProcess.stdout.on('data', (data) => {
     const lines = data.toString().split('\n');
@@ -680,7 +716,6 @@ ipcMain.handle('engine:startWatcher', async () => {
   try {
     validateAndProvisionDirectories(activeRootFolder);
     const configFilePath = generateRuntimeYaml(activeRootFolder, currentConfig);
-    const pythonBin = resolvePythonBinary();
     const projectDir = resolveProjectRootDir();
 
     const env = {
@@ -689,10 +724,20 @@ ipcMain.handle('engine:startWatcher', async () => {
       PYTHONUNBUFFERED: '1'
     };
 
-    const args = ['-u', '-m', 'src.cli', 'watch', '--config', configFilePath];
+    const bundledEngine = resolveBundledBinary('braw_engine');
+    let spawnCmd;
+    let args;
+
+    if (bundledEngine) {
+      spawnCmd = bundledEngine;
+      args = ['watch', '--config', configFilePath];
+    } else {
+      spawnCmd = resolvePythonBinary();
+      args = ['-u', '-m', 'src.cli', 'watch', '--config', configFilePath];
+    }
 
     if (mainWindow) {
-      mainWindow.webContents.send('engine:log', `[GUI] Launching Python Watcher: ${pythonBin} ${args.join(' ')}`);
+      mainWindow.webContents.send('engine:log', `[GUI] Launching Watcher: ${spawnCmd} ${args.join(' ')}`);
       mainWindow.webContents.send('engine:log', `[GUI] Target Watch Folder: ${activeRootFolder}`);
       mainWindow.webContents.send('engine:status', {
         state: 'starting',
@@ -700,7 +745,7 @@ ipcMain.handle('engine:startWatcher', async () => {
       });
     }
 
-    watcherProcess = spawn(pythonBin, args, {
+    watcherProcess = spawn(spawnCmd, args, {
       cwd: projectDir,
       env: env
     });

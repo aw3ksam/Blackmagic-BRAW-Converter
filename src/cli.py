@@ -148,11 +148,20 @@ def cmd_test_env(args):
     print(f"• Python Version: {sys.version.split()[0]} ({sys.executable})")
 
     # 2. FFmpeg and VideoToolbox
-    ffmpeg_path = shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg"
-    if Path(ffmpeg_path).is_file():
+    bundled_ffmpeg = Path(__file__).resolve().parent.parent / "bin" / "ffmpeg"
+    exec_dir_ffmpeg = Path(sys.executable).parent / "ffmpeg"
+    ffmpeg_path = None
+    if bundled_ffmpeg.is_file() and os.access(bundled_ffmpeg, os.X_OK):
+        ffmpeg_path = str(bundled_ffmpeg)
+    elif exec_dir_ffmpeg.is_file() and os.access(exec_dir_ffmpeg, os.X_OK):
+        ffmpeg_path = str(exec_dir_ffmpeg)
+    else:
+        ffmpeg_path = shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg"
+
+    if ffmpeg_path and Path(ffmpeg_path).is_file():
         print(f"• FFmpeg Executable: FOUND ({ffmpeg_path})")
     else:
-        print("• FFmpeg: NOT FOUND in PATH")
+        print("• FFmpeg: NOT FOUND in PATH or bundled bin/")
 
     # 3. Native BRAW Decoder Binary
     try:

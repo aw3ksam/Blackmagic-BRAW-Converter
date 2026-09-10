@@ -1,8 +1,10 @@
 # Blackmagic BRAW Converter
 
-Automated hot-folder monitoring and standalone video transcoding workstation for Blackmagic RAW (`.braw`) media.
+A macOS desktop application that automates media ingest and transcodes Blackmagic RAW (`.braw`) footage using hardware acceleration (Apple VideoToolbox and Metal). It processes clips into deliverables like H.265, H.264, and ProRes directly, without requiring DaVinci Resolve.
 
-The application combines an Electron desktop interface with an in-process native Metal compute engine, Apple VideoToolbox hardware encoder, and background camera synchronization. It operates independently without requiring DaVinci Resolve or external dongles.
+The tool automatically ingests clips from monitored hot-folders or connected Blackmagic cameras over the local network, checks file write stability before processing, applies color transformations via 3D LUTs, and encodes deliverables while preserving camera metadata, timecode, and audio tracks.
+
+> **Note**: This application is currently only supported on macOS (Apple Silicon).
 
 ![Blackmagic BRAW Converter Dashboard](assets/screenshots/dashboard.png)
 
@@ -26,39 +28,59 @@ The application combines an Electron desktop interface with an in-process native
 
 ## Installation & Quick Start
 
-### Prerequisites
+### For End Users (Pre-built Application)
 
-- macOS 14 (Sonoma) or macOS 15 (Sequoia) on Apple Silicon (M1/M2/M3/M4)
+**No terminal commands, Homebrew, Python, or Node.js are required.**
+
+1. **System Requirements**: macOS 14 (Sonoma) or macOS 15 (Sequoia) on Apple Silicon (M1/M2/M3/M4).
+2. **Download**: Get the latest `.dmg` release from [Releases](https://github.com/aw3ksam/Blackmagic-BRAW-Converter/releases).
+3. **Install**: Open the `.dmg` and drag **Blackmagic Converter** into `/Applications`.
+4. **Launch**: Open Blackmagic Converter from Launchpad or `/Applications`.
+5. **Select Watch Folder**: After starting the application, select a folder on your drive to serve as the root watch folder. The program will automatically create the required staging subfolders (`00_IN_INGEST`, `01_PROCESSING`, `02_COMPLETED_MP4`, `03_ARCHIVE_BRAW`, `99_FAILED`) if they do not already exist in the folder.
+
+---
+
+### For Developers (Running & Building from Source)
+
+If you are developing or contributing to the codebase, set up your development environment to run the project from source or generate application packages.
+
+#### Prerequisites
+
+- macOS 14+ on Apple Silicon (M1/M2/M3/M4)
 - Node.js 20 or later
 - Python 3.10 or later
-- FFmpeg (accessible in system PATH or installed via Homebrew)
 
-### Running from Source
+#### Running from Source
 
 ```bash
 # Clone the repository
 git clone https://github.com/aw3ksam/Blackmagic-BRAW-Converter.git
 cd Blackmagic-BRAW-Converter
 
-# Install dependencies
+# Install Node and Python dependencies
 npm install
 pip3 install -r requirements.txt
 
-# Launch the application
+# Launch development app with Vite HMR
 npm start
 ```
 
-### Building Distributables
+#### Bundling Binaries & Packaging Distributables
+
+The application packages self-contained binaries into `bin/` so distributable builds require zero host runtime dependencies:
 
 ```bash
-# Package application bundle into out/
+# Bundle static FFmpeg and compile the standalone backend engine into bin/
+npm run bundle:binaries
+
+# Package local application bundle into out/
 npm run package
 
-# Build macOS installer packages (.dmg and .zip) in out/make/
+# Build macOS installer packages (.dmg and .zip) into out/make/
 npm run make
 ```
 
-A pre-compiled native decoder binary for Apple Silicon is located at `bin/braw_decode`. If modifying native source files in `src/native/`, recompile with:
+A pre-compiled native decoder binary for Apple Silicon is located at `bin/braw_decode`. If modifying native Metal/C++ source files in `src/native/`, recompile with:
 
 ```bash
 npm run build:decoder
