@@ -991,6 +991,17 @@ label {
   color: var(--text-dim);
 }
 
+.camera-pill.failed {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: var(--color-error);
+}
+
+.camera-pill.failed .camera-dot {
+  background: var(--color-error);
+  box-shadow: 0 0 6px var(--color-error);
+}
+
 .camera-pill.connecting {
   background: rgba(245, 158, 11, 0.12);
   border-color: rgba(245, 158, 11, 0.35);
@@ -1082,6 +1093,16 @@ label {
   cursor: not-allowed;
 }
 
+.cam-btn.btn-connect.btn-cancel-connect {
+  background: rgba(239, 68, 68, 0.16) !important;
+  color: var(--color-error) !important;
+  border-left-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+.cam-btn.btn-connect.btn-cancel-connect:hover {
+  background: rgba(239, 68, 68, 0.28) !important;
+}
+
 .camera-bar-center {
   flex: 1;
   max-width: 480px;
@@ -1168,20 +1189,42 @@ label {
 .cam-toggle-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 3px 9px 3px 10px;
+  transition: all 0.2s ease;
+}
+
+.cam-toggle-wrap:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cam-toggle-wrap.active,
+.cam-toggle-wrap:has(input:checked) {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.08);
 }
 
 .cam-toggle-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-dim);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #d1d5db;
+  letter-spacing: 0.02em;
+}
+
+.cam-toggle-wrap.active .cam-toggle-label,
+.cam-toggle-wrap:has(input:checked) .cam-toggle-label {
+  color: #f0f9ff;
 }
 
 .cam-switch {
   position: relative;
   display: inline-block;
-  width: 34px;
-  height: 18px;
+  width: 40px;
+  height: 22px;
 }
 
 .cam-switch input {
@@ -1197,29 +1240,43 @@ label {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: var(--border-subtle);
-  transition: 0.2s;
-  border-radius: 18px;
+  background-color: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 22px;
+}
+
+.cam-slider:hover {
+  background-color: rgba(255, 255, 255, 0.24);
 }
 
 .cam-slider:before {
   position: absolute;
   content: "";
-  height: 12px;
-  width: 12px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: 0.2s;
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 50%;
 }
 
 .cam-switch input:checked+.cam-slider {
-  background-color: var(--accent-primary);
+  background-color: #0ea5e9;
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
 }
 
 .cam-switch input:checked+.cam-slider:before {
-  transform: translateX(16px);
+  transform: translateX(18px);
+  background-color: #ffffff;
+}
+
+.cam-switch input:focus-visible+.cam-slider {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
 }
 
 .settings-section-divider {

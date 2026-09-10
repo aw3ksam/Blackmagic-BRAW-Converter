@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveConfig: (cfg) => ipcRenderer.invoke('camera:saveConfig', cfg),
     testConnection: (params) => ipcRenderer.invoke('camera:testConnection', params),
     connect: (params) => ipcRenderer.invoke('camera:connect', params),
+    cancelConnect: () => ipcRenderer.invoke('camera:cancelConnect'),
     toggleAutoTransfer: (active, importToday) => ipcRenderer.invoke('camera:toggleAutoTransfer', active, importToday),
     importToday: () => ipcRenderer.invoke('camera:importToday'),
     getStatus: () => ipcRenderer.invoke('camera:getStatus'),

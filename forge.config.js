@@ -7,8 +7,8 @@ module.exports = {
     executableName: 'BlackMagicConverter',
     appBundleId: 'com.blackmagic.converter',
     appCategoryType: 'public.app-category.video',
-    appVersion: '5.0.0',
-    buildVersion: '5.0.0',
+    appVersion: '5.1.0',
+    buildVersion: '5.1.0',
     icon: './assets/icons/icon',
     asar: true,
     extraResource: [

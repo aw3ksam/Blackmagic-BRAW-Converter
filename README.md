@@ -12,7 +12,12 @@ The application combines an Electron desktop interface with an in-process native
 
 - **Metal GPU Color Science**: In-process Metal 3D LUT compute pipeline reading RAW pixel buffers and encoding directly to 10-bit H.265 (HEVC Main10), H.264, or ProRes deliverables via VideoToolbox.
 - **Automated Hot-Folder Staging**: 5-stage hot-folder watcher with POSIX file-locking and size-stability verification to prevent premature transcoding of in-flight transfers.
-- **Blackmagic Camera Network Ingest**: Background service connecting to Blackmagic cameras (PYXIS 6K, Cinema Camera 6K, Pocket series) via REST and FTP. Automatically detects record stop transitions, extracts takes, and transfers media into the ingest queue.
+- **Blackmagic Camera Network Ingest & Auto-Transfer (v5.1)**:
+  - Background service connecting to Blackmagic cameras (PYXIS 6K, Cinema Camera 6K, Pocket series) via REST and FTP.
+  - **Dynamic Auto-Ingest**: The toggle automatically engages when the camera connects to guarantee no recorded takes are missed during live shoots.
+  - **Responsive Connection Feedback**: Real-time connection feedback with red failure indicator badges, detailed error messages, and non-blocking cancellable connection checks.
+  - **Seamless IP Synchronization**: Immediate inline IP address editing from the dashboard bar synced bidirectionally with Settings and persistent user preferences.
+  - **High-Contrast Prominent UI**: Redesigned, elevated Auto-Ingest toggle with vibrant sky-blue glow ensuring status is instantly clear at a glance.
 - **Bundled 3D LUT Profiles**: Includes 23 Blackmagic Generation 4 and Generation 5 color science conversion LUTs in `assets/luts/`.
 - **Standalone Architecture**: Zero dependencies on DaVinci Resolve or Resolve Studio licenses.
 

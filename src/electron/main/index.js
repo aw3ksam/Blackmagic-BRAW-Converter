@@ -583,7 +583,12 @@ function handleCameraEvent(evt) {
   } else if (type === 'tool1_transfer_failed') {
     mainWindow.webContents.send('engine:log', `[CAMERA ERROR] Transfer failed for ${data.file_name}: ${data.error}`);
   } else if (type === 'status' || type === 'heartbeat' || type === 'service_ready') {
-    latestCameraStatus = { ...latestCameraStatus, ...data };
+    latestCameraStatus = {
+      ...latestCameraStatus,
+      ...data,
+      camera_ip: currentConfig.camera_ip || data.camera_ip,
+      camera_ftp: currentConfig.camera_ftp || data.camera_ftp
+    };
     mainWindow.webContents.send('camera:status', latestCameraStatus);
   } else if (type === 'tool1_status') {
     if (latestCameraStatus.tool1) {
@@ -601,6 +606,14 @@ function handleCameraEvent(evt) {
   } else if (type === 'tool1_new_clips_detected') {
     mainWindow.webContents.send('engine:log', `[CAMERA] Detected ${data.new_clips_count} new clip(s) for transfer`);
   } else if (type === 'test_connection_result') {
+    if (data.cancelled) {
+      mainWindow.webContents.send('engine:log', '[CAMERA] ⏹ Camera connection check cancelled.');
+    } else if (data.http_ok) {
+      const ftpNote = data.ftp_ok ? '' : ` [FTP storage warning: ${data.error || 'unreachable'}]`;
+      mainWindow.webContents.send('engine:log', `[CAMERA] ✅ Connected to camera at ${data.camera_ip} (${data.product_name || 'Blackmagic Camera'})${ftpNote}`);
+    } else {
+      mainWindow.webContents.send('engine:log', `[CAMERA ERROR] ❌ Failed to connect to camera at ${data.camera_ip || currentConfig.camera_ip}. Error: ${data.error || 'Device unreachable'}`);
+    }
     mainWindow.webContents.send('camera:testResult', data);
   }
 }
@@ -824,6 +837,18 @@ ipcMain.handle('camera:connect', async (_event, params) => {
   return { success: true, camera_ip: currentConfig.camera_ip, camera_ftp: currentConfig.camera_ftp };
 });
 
+ipcMain.handle('camera:cancelConnect', () => {
+  latestCameraStatus.connecting = false;
+  sendCameraCommand({ cmd: 'cancel_test' });
+  if (mainWindow) {
+    mainWindow.webContents.send('camera:status', {
+      ...latestCameraStatus,
+      connecting: false
+    });
+  }
+  return { success: true };
+});
+
 ipcMain.handle('camera:testConnection', async (_event, params) => {
   const ip = params?.camera_ip || currentConfig.camera_ip || '192.168.1.118';
   const ftp = params?.camera_ftp || currentConfig.camera_ftp || 'ftp://PYXIS-6K.local';
@@ -838,6 +863,7 @@ ipcMain.handle('camera:testConnection', async (_event, params) => {
 
 ipcMain.handle('camera:toggleAutoTransfer', async (_event, active, importToday = false) => {
   currentConfig.camera_auto_transfer = active;
+  saveUserConfig();
   if (active && !cameraProcess) {
     startCameraService(true);
     return { success: true, active: true };
@@ -858,9 +884,7 @@ ipcMain.handle('camera:importToday', async () => {
 });
 
 ipcMain.handle('camera:getStatus', () => {
-  if (cameraProcess) {
-    sendCameraCommand({ cmd: 'status' });
-  } else if (currentConfig.camera_auto_transfer) {
+  if (!cameraProcess && currentConfig.camera_auto_transfer) {
     startCameraService(true);
   }
   return latestCameraStatus;

@@ -58,16 +58,43 @@ class CameraServiceDaemon:
             dest_dir=self.dest_dir,
             on_event_cb=self._on_tool_event,
         )
+        self.cached_connected = False
+        self.cached_product: Dict[str, Any] = {}
+        self.cached_recording = False
+        self.active_test_id = 0
+        self.lock = threading.Lock()
         self.running = True
 
     def _on_tool_event(self, event: Dict[str, Any]):
         send_event(event.get("type", "tool_event"), event.get("data", {}))
+
+    def _probe_camera(self) -> Dict[str, Any]:
+        connected = False
+        product = {}
+        recording = False
+        try:
+            product = self.camera_client.get_product()
+            recording = self.camera_client.get_record_state()
+            connected = True
+        except Exception:
+            connected = False
+
+        with self.lock:
+            self.cached_connected = connected
+            self.cached_product = product
+            self.cached_recording = recording
+
+        return self.get_status()
 
     def update_config(self, camera_ip: Optional[str] = None, camera_ftp: Optional[str] = None, dest_dir: Optional[str] = None):
         if camera_ip:
             self.camera_ip = camera_ip
             self.camera_client = CameraClient(host=self.camera_ip)
             self.tool1.camera = self.camera_client
+            with self.lock:
+                self.cached_connected = False
+                self.cached_product = {}
+                self.cached_recording = False
         if camera_ftp:
             self.camera_ftp = camera_ftp
             self.ftp_client = FtpClient(host=self.camera_ftp)
@@ -85,26 +112,21 @@ class CameraServiceDaemon:
         send_event("status", self.get_status())
 
     def get_status(self) -> Dict[str, Any]:
-        connected = False
-        product = {}
-        recording = False
-        try:
-            product = self.camera_client.get_product()
-            recording = self.camera_client.get_record_state()
-            connected = True
-        except Exception:
-            connected = False
+        with self.lock:
+            return {
+                "connected": self.cached_connected,
+                "camera_ip": self.camera_ip,
+                "camera_ftp": self.camera_ftp,
+                "product": self.cached_product,
+                "recording": self.cached_recording,
+                "tool1": self.tool1.get_status(),
+            }
 
-        return {
-            "connected": connected,
-            "camera_ip": self.camera_ip,
-            "camera_ftp": self.camera_ftp,
-            "product": product,
-            "recording": recording,
-            "tool1": self.tool1.get_status(),
-        }
+    def test_connection(self, test_ip: Optional[str] = None, test_ftp: Optional[str] = None, test_id: int = 0) -> Dict[str, Any]:
+        with self.lock:
+            if test_id > 0 and test_id != self.active_test_id:
+                return {"cancelled": True, "http_ok": False, "ftp_ok": False, "error": "Cancelled"}
 
-    def test_connection(self, test_ip: Optional[str] = None, test_ftp: Optional[str] = None) -> Dict[str, Any]:
         ip = test_ip or self.camera_ip
         ftp_host = test_ftp or self.camera_ftp
         c_client = CameraClient(host=ip, timeout=3.0)
@@ -122,6 +144,10 @@ class CameraServiceDaemon:
         except Exception as e:
             error_msg = f"REST Error: {e}"
 
+        with self.lock:
+            if test_id > 0 and test_id != self.active_test_id:
+                return {"cancelled": True, "http_ok": False, "ftp_ok": False, "error": "Cancelled"}
+
         try:
             ftp_ok = f_client.test_connection()
         except Exception as e:
@@ -130,6 +156,10 @@ class CameraServiceDaemon:
             else:
                 error_msg += f" | FTP Error: {e}"
 
+        with self.lock:
+            if test_id > 0 and test_id != self.active_test_id:
+                return {"cancelled": True, "http_ok": False, "ftp_ok": False, "error": "Cancelled"}
+
         if http_ok and (ip != self.camera_ip or ftp_host != self.camera_ftp):
             self.camera_ip = ip
             self.camera_client = c_client
@@ -137,6 +167,10 @@ class CameraServiceDaemon:
             self.camera_ftp = ftp_host
             self.ftp_client = f_client
             self.tool1.ftp = f_client
+            with self.lock:
+                self.cached_connected = True
+                self.cached_product = prod
+                self.cached_recording = False
             send_event("status", self.get_status())
 
         return {
@@ -154,11 +188,12 @@ class CameraServiceDaemon:
         # Heartbeat thread
         def heartbeat_loop():
             while self.running:
-                time.sleep(5.0)
                 try:
-                    send_event("heartbeat", self.get_status())
+                    status = self._probe_camera()
+                    send_event("heartbeat", status)
                 except Exception:
-                    break
+                    pass
+                time.sleep(5.0)
 
         hb_thread = threading.Thread(target=heartbeat_loop, daemon=True, name="Heartbeat")
         hb_thread.start()
@@ -190,11 +225,28 @@ class CameraServiceDaemon:
                     send_event("import_today_result", res)
 
                 elif cmd == "test_connection":
-                    res = self.test_connection(
-                        test_ip=cmd_data.get("camera_ip"),
-                        test_ftp=cmd_data.get("camera_ftp"),
-                    )
-                    send_event("test_connection_result", res)
+                    with self.lock:
+                        self.active_test_id += 1
+                        current_id = self.active_test_id
+                    t_ip = cmd_data.get("camera_ip")
+                    t_ftp = cmd_data.get("camera_ftp")
+                    def _async_test(ip_arg, ftp_arg, test_id):
+                        res = self.test_connection(test_ip=ip_arg, test_ftp=ftp_arg, test_id=test_id)
+                        with self.lock:
+                            if test_id != self.active_test_id:
+                                return
+                        send_event("test_connection_result", res)
+                    threading.Thread(target=_async_test, args=(t_ip, t_ftp, current_id), daemon=True).start()
+
+                elif cmd == "cancel_test":
+                    with self.lock:
+                        self.active_test_id += 1
+                    send_event("test_connection_result", {
+                        "cancelled": True,
+                        "http_ok": False,
+                        "ftp_ok": False,
+                        "error": "Connection check cancelled"
+                    })
 
                 elif cmd == "update_config":
                     self.update_config(

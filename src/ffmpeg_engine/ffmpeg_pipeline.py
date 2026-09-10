@@ -1,6 +1,6 @@
 """
 Transcoding Pipeline Controller for Blackmagic RAW Clips.
-Primary Engine: Zero-Copy GPU Metal + Apple VideoToolbox In-Process Engine (v5.0).
+Primary Engine: Zero-Copy GPU Metal + Apple VideoToolbox In-Process Engine (v5.1).
 Fallback Engine: FFmpeg Subprocess Pipe Streaming.
 """
 
@@ -129,7 +129,7 @@ class FFmpegPipeline:
         # 3. High-Performance In-Process Metal + VideoToolbox Route
         res_cfg = str(self.config.resolution).lower()
         if sys.platform == "darwin" and res_cfg == "source":
-            logger.info("Engaging Zero-Copy In-Process Metal + VideoToolbox Engine (v5.0)...")
+            logger.info("Engaging Zero-Copy In-Process Metal + VideoToolbox Engine (v5.1)...")
             success = self.decoder_bridge.transcode_native(
                 braw_path=braw_path,
                 output_file=output_file,

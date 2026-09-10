@@ -1,5 +1,5 @@
 """
-Unified Command-Line Interface for Blackmagic BRAW Converter (v5.0).
+Unified Command-Line Interface for Blackmagic BRAW Converter (v5.1).
 Standalone transcode engine powered by Blackmagic RAW SDK, FFmpeg, and Camera Ingest.
 Supports background hot-folder monitoring, camera auto-transfer, manual batch transcoding, LUT inspection, and environment diagnostics.
 """
@@ -56,7 +56,7 @@ def transcode_single_file(
 def cmd_watch(args):
     """Starts the hot-folder watcher daemon."""
     config = load_config(args.config)
-    logger.info("Initializing BRAW Hot Folder Watcher (v5.0 Standalone Engine)...")
+    logger.info("Initializing BRAW Hot Folder Watcher (v5.1 Standalone Engine)...")
     logger.info(f"Ingest Hot Folder: {config.storage.ingest_dir}")
     logger.info(f"Output MP4 Folder: {config.storage.completed_dir}")
     logger.info(f"LUT: {config.transcode.color.lut_path}")
@@ -141,7 +141,7 @@ def cmd_list_luts(args):
 def cmd_test_env(args):
     """Diagnoses system requirements, FFmpeg, and native BRAW decoder setup."""
     print("\n" + "=" * 60)
-    print(" BRAW Video Converter — Environment Diagnostics (v5.0)")
+    print(" BRAW Video Converter — Environment Diagnostics (v5.1)")
     print("=" * 60)
 
     # 1. Python Environment
@@ -193,7 +193,7 @@ def main():
     config_parser.add_argument("-c", "--config", type=str, default=None, help="Path to config.yaml")
 
     parser = argparse.ArgumentParser(
-        description="BRAW to H.265 MP4 Automated Video Converter (v5.0 Standalone with Camera Ingest)",
+        description="BRAW to H.265 MP4 Automated Video Converter (v5.1 Standalone with Camera Ingest)",
         parents=[config_parser],
     )
 

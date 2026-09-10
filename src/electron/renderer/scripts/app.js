@@ -1,4 +1,4 @@
-// Blackmagic Converter - Renderer Application Logic (v5.0)
+// Blackmagic Converter - Renderer Application Logic (v5.1)
 
 document.addEventListener('DOMContentLoaded', async () => {
   const electron = window.electronAPI;
@@ -65,6 +65,132 @@ document.addEventListener('DOMContentLoaded', async () => {
   let isRunning = false;
   let currentServiceState = 'idle'; // 'idle' | 'starting' | 'watching' | 'transcoding' | 'stopping' | 'error'
   let activeConfig = {};
+  let isConnectingCamera = false;
+  let connectingCameraIp = '';
+  let connectTimeoutTimer = null;
+
+  function resetConnectButton() {
+    isConnectingCamera = false;
+    if (connectTimeoutTimer) {
+      clearTimeout(connectTimeoutTimer);
+      connectTimeoutTimer = null;
+    }
+    if (btnCameraConnect) {
+      btnCameraConnect.disabled = false;
+      btnCameraConnect.classList.remove('btn-cancel-connect');
+      btnCameraConnect.innerHTML = `<svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg> Connect`;
+      btnCameraConnect.title = 'Connect to this Camera IP';
+    }
+  }
+
+  function setConnectingUI(ip) {
+    isConnectingCamera = true;
+    connectingCameraIp = ip;
+    if (cameraStatusPill) {
+      cameraStatusPill.className = 'camera-pill connecting';
+      cameraStatusLabel.textContent = `Connecting ${ip}...`;
+      cameraStatusPill.title = `Attempting connection to ${ip}. Click CANCEL to abort.`;
+    }
+    if (btnCameraConnect) {
+      btnCameraConnect.disabled = false;
+      btnCameraConnect.classList.add('btn-cancel-connect');
+      btnCameraConnect.innerHTML = `<svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> CANCEL`;
+      btnCameraConnect.title = 'Cancel connection check';
+    }
+    if (camPingStatusText) {
+      camPingStatusText.style.color = 'var(--text-dim)';
+      camPingStatusText.textContent = `Connecting to ${ip}...`;
+    }
+    if (connectTimeoutTimer) clearTimeout(connectTimeoutTimer);
+    connectTimeoutTimer = setTimeout(() => {
+      if (isConnectingCamera) {
+        appendLogLine(`[CAMERA ERROR] ❌ Connection check to ${connectingCameraIp} timed out.`, 'error');
+        handleConnectionFailure(connectingCameraIp, 'Connection check timed out');
+      }
+    }, 12000);
+  }
+
+  async function cancelConnectionCheck() {
+    if (!isConnectingCamera) return;
+    const ip = connectingCameraIp;
+    resetConnectButton();
+    appendLogLine(`[CAMERA] ⏹ Connection check to ${ip} cancelled by user.`, 'warn');
+    if (cameraStatusPill) {
+      cameraStatusPill.className = 'camera-pill offline';
+      cameraStatusLabel.textContent = 'Connection Cancelled';
+      cameraStatusPill.title = 'Connection check was cancelled';
+    }
+    if (camPingStatusText) {
+      camPingStatusText.style.color = 'var(--text-dim)';
+      camPingStatusText.textContent = 'Connection cancelled.';
+    }
+    try {
+      if (electron.camera && electron.camera.cancelConnect) {
+        await electron.camera.cancelConnect();
+      }
+    } catch (_) {}
+  }
+
+  let wasCameraConnected = false;
+
+  function updateToggleWrapStyle(active) {
+    if (chkCameraAutoTransfer) {
+      const wrap = chkCameraAutoTransfer.closest('.cam-toggle-wrap');
+      if (wrap) {
+        wrap.classList.toggle('active', !!active);
+      }
+    }
+  }
+
+  async function autoEnableIngestOnConnect() {
+    if (chkCameraAutoTransfer && electron.camera && electron.camera.toggleAutoTransfer) {
+      if (!chkCameraAutoTransfer.checked) {
+        chkCameraAutoTransfer.checked = true;
+        updateToggleWrapStyle(true);
+        appendLogLine('[CAMERA] ⚡ Camera connected — Auto Ingest automatically enabled.', 'system');
+        try {
+          const res = await electron.camera.toggleAutoTransfer(true);
+          if (res && res.active !== undefined) {
+            chkCameraAutoTransfer.checked = res.active;
+            updateToggleWrapStyle(res.active);
+          }
+        } catch (err) {
+          appendLogLine(`[CAMERA ERROR] Failed to activate auto ingest: ${err.message}`, 'error');
+        }
+      } else {
+        updateToggleWrapStyle(true);
+      }
+    }
+  }
+
+  function handleConnectionSuccess(res) {
+    resetConnectButton();
+    const model = res.product_name || 'Blackmagic Camera';
+    if (cameraStatusPill) {
+      cameraStatusPill.className = 'camera-pill online';
+      cameraStatusLabel.textContent = `${model} (Online)`;
+      cameraStatusPill.title = `Online - Camera connected at ${res.camera_ip || connectingCameraIp}`;
+    }
+    if (camPingStatusText) {
+      camPingStatusText.style.color = 'var(--color-success)';
+      camPingStatusText.textContent = `✅ Connected: ${model}`;
+    }
+    wasCameraConnected = true;
+    autoEnableIngestOnConnect();
+  }
+
+  function handleConnectionFailure(ip, reason) {
+    resetConnectButton();
+    if (cameraStatusPill) {
+      cameraStatusPill.className = 'camera-pill failed';
+      cameraStatusLabel.textContent = 'Failed to Connect';
+      cameraStatusPill.title = `Failed to connect to camera at ${ip}: ${reason}`;
+    }
+    if (camPingStatusText) {
+      camPingStatusText.style.color = 'var(--color-error)';
+      camPingStatusText.textContent = `❌ Failed: ${reason}`;
+    }
+  }
 
   // Connect to camera routine
   async function connectToCamera(targetIp, targetFtp) {
@@ -72,24 +198,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ftp = (targetFtp || (cfgCamFtp ? cfgCamFtp.value : '') || 'ftp://PYXIS-6K.local').trim();
     if (!ip) return;
 
-    if (barCameraIp) barCameraIp.value = ip;
+    if (barCameraIp) {
+      barCameraIp.value = ip;
+      delete barCameraIp.dataset.userEdited;
+    }
     if (cfgCamIp) cfgCamIp.value = ip;
     activeConfig.camera_ip = ip;
     activeConfig.camera_ftp = ftp;
 
-    if (cameraStatusPill) {
-      cameraStatusPill.className = 'camera-pill connecting';
-      cameraStatusLabel.textContent = `Connecting ${ip}...`;
-    }
-    if (btnCameraConnect) {
-      btnCameraConnect.disabled = true;
-      btnCameraConnect.textContent = 'Connecting...';
-    }
-    if (camPingStatusText) {
-      camPingStatusText.style.color = 'var(--text-dim)';
-      camPingStatusText.textContent = `Connecting to ${ip}...`;
+    // Immediately persist updated camera config
+    if (electron && electron.saveConfig) {
+      await electron.saveConfig(activeConfig);
     }
 
+    setConnectingUI(ip);
     appendLogLine(`[CAMERA] Connecting to ${ip}...`, 'system');
 
     try {
@@ -100,16 +222,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         await electron.camera.testConnection({ camera_ip: ip, camera_ftp: ftp });
       }
     } catch (err) {
-      appendLogLine(`[CAMERA ERROR] Connection error: ${err.message}`, 'error');
-      if (cameraStatusPill) {
-        cameraStatusPill.className = 'camera-pill offline';
-        cameraStatusLabel.textContent = 'Camera Offline';
-      }
-    } finally {
-      if (btnCameraConnect) {
-        btnCameraConnect.disabled = false;
-        btnCameraConnect.innerHTML = `<svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg> Connect`;
-      }
+      appendLogLine(`[CAMERA ERROR] ❌ Connection error: ${err.message}`, 'error');
+      handleConnectionFailure(ip, err.message);
     }
   }
 
@@ -136,7 +250,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (cfgCamIp) cfgCamIp.value = ip;
         if (barCameraIp) barCameraIp.value = ip;
         if (cfgCamFtp) cfgCamFtp.value = camCfg.camera_ftp || 'ftp://PYXIS-6K.local';
-        if (chkCameraAutoTransfer) chkCameraAutoTransfer.checked = !!camCfg.camera_auto_transfer;
+        if (chkCameraAutoTransfer) {
+          chkCameraAutoTransfer.checked = !!camCfg.camera_auto_transfer;
+          updateToggleWrapStyle(chkCameraAutoTransfer.checked);
+        }
         activeConfig.camera_ip = ip;
       }
       const camStatus = await electron.camera.getStatus();
@@ -246,22 +363,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     electron.camera.onTestResult((res) => {
-      if (camPingStatusText) {
-        if (res.http_ok && res.ftp_ok) {
-          camPingStatusText.style.color = 'var(--color-success)';
-          camPingStatusText.textContent = `✅ Connected: ${res.product_name || 'Blackmagic Camera'}`;
-          if (cameraStatusPill) {
-            cameraStatusPill.className = 'camera-pill online';
-            cameraStatusLabel.textContent = `${res.product_name || 'PYXIS 6K'} (Online)`;
-          }
-        } else {
-          camPingStatusText.style.color = 'var(--color-error)';
-          camPingStatusText.textContent = `⚠️ Failed: REST: ${res.http_ok ? 'OK' : 'FAIL'}, FTP: ${res.ftp_ok ? 'OK' : 'FAIL'}`;
+      if (res.cancelled) {
+        if (isConnectingCamera) {
+          resetConnectButton();
           if (cameraStatusPill) {
             cameraStatusPill.className = 'camera-pill offline';
-            cameraStatusLabel.textContent = 'Camera Offline';
+            cameraStatusLabel.textContent = 'Connection Cancelled';
+            cameraStatusPill.title = 'Connection check was cancelled by user';
           }
         }
+        return;
+      }
+
+      if (res.http_ok) {
+        handleConnectionSuccess(res);
+      } else {
+        const errorMsg = res.error || 'Device unreachable or timed out';
+        handleConnectionFailure(res.camera_ip || connectingCameraIp, errorMsg);
       }
     });
   }
@@ -269,15 +387,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Camera Connect UI Actions
   if (btnCameraConnect) {
     btnCameraConnect.addEventListener('click', () => {
-      connectToCamera();
+      if (isConnectingCamera) {
+        cancelConnectionCheck();
+        return;
+      }
+      const target = barCameraIp ? barCameraIp.value.trim() : '';
+      connectToCamera(target);
     });
   }
 
   if (barCameraIp) {
+    barCameraIp.addEventListener('input', () => {
+      barCameraIp.dataset.userEdited = 'true';
+    });
+
+    barCameraIp.addEventListener('change', async () => {
+      const val = barCameraIp.value.trim();
+      if (val) {
+        activeConfig.camera_ip = val;
+        if (cfgCamIp) cfgCamIp.value = val;
+        if (electron && electron.saveConfig) {
+          await electron.saveConfig(activeConfig);
+        }
+      }
+    });
+
     barCameraIp.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        connectToCamera();
+        const target = barCameraIp.value.trim();
+        connectToCamera(target);
       }
     });
   }
@@ -285,10 +424,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (chkCameraAutoTransfer && electron.camera) {
     chkCameraAutoTransfer.addEventListener('change', async () => {
       const active = chkCameraAutoTransfer.checked;
+      updateToggleWrapStyle(active);
       appendLogLine(`[CAMERA] Auto-Ingest ${active ? 'activating (snapshotting baseline)...' : 'deactivated.'}`, 'system');
       const res = await electron.camera.toggleAutoTransfer(active);
       if (res && res.active !== undefined) {
         chkCameraAutoTransfer.checked = res.active;
+        updateToggleWrapStyle(res.active);
       }
     });
   }
@@ -446,13 +587,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   function updateCameraStatusUI(status) {
     if (!cameraStatusPill) return;
 
-    if (status.connecting) {
-      cameraStatusPill.className = 'camera-pill connecting';
-      cameraStatusLabel.textContent = `Connecting ${status.camera_ip || ''}...`;
+    if (isConnectingCamera || status.connecting) {
+      if (!isConnectingCamera) {
+        cameraStatusPill.className = 'camera-pill connecting';
+        cameraStatusLabel.textContent = `Connecting ${status.camera_ip || ''}...`;
+      }
       return;
     }
 
     if (status.connected) {
+      resetConnectButton();
       const prod = status.product || {};
       const model = prod.productName || prod.deviceName || 'PYXIS 6K';
       if (status.recording) {
@@ -462,24 +606,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         cameraStatusPill.className = 'camera-pill online';
         cameraStatusLabel.textContent = `${model} (Online)`;
       }
+      cameraStatusPill.title = `Camera Online (${status.camera_ip || ''})`;
+
+      // Dynamic Auto Ingest enablement when transitioning to connected state
+      if (!wasCameraConnected) {
+        wasCameraConnected = true;
+        autoEnableIngestOnConnect();
+      }
     } else {
-      cameraStatusPill.className = 'camera-pill offline';
-      cameraStatusLabel.textContent = 'Camera Offline';
+      wasCameraConnected = false;
+      if (!cameraStatusPill.classList.contains('failed')) {
+        cameraStatusPill.className = 'camera-pill offline';
+        cameraStatusLabel.textContent = 'Camera Offline';
+        cameraStatusPill.title = 'Camera Offline';
+      }
     }
 
     if (status.camera_ip) {
-      activeConfig.camera_ip = status.camera_ip;
-      if (barCameraIp && document.activeElement !== barCameraIp) {
+      if (barCameraIp && document.activeElement !== barCameraIp && !barCameraIp.dataset.userEdited) {
         barCameraIp.value = status.camera_ip;
       }
       if (cfgCamIp && document.activeElement !== cfgCamIp) {
         cfgCamIp.value = status.camera_ip;
+      }
+      if (!barCameraIp || !barCameraIp.dataset.userEdited) {
+        activeConfig.camera_ip = status.camera_ip;
       }
     }
 
     const t1 = status.tool1;
     if (t1 && chkCameraAutoTransfer) {
       chkCameraAutoTransfer.checked = !!t1.active;
+      updateToggleWrapStyle(!!t1.active);
     }
   }
 

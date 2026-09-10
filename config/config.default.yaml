@@ -1,4 +1,4 @@
-# Default Configuration Template for BRAW Video Converter (v5.0)
+# Default Configuration Template for BRAW Video Converter (v5.1)
 
 storage:
   ingest_dir: "./watch_folders/00_IN_INGEST"
